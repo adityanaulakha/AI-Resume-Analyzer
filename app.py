@@ -7,15 +7,27 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from io import StringIO
 
-# Load environment variables
+# Load environment variables & prime session state
 load_dotenv()
+_env_key = os.getenv("GEMINI_API_KEY", "")
+if "api_key" not in st.session_state:
+    st.session_state.api_key = _env_key
+if "model_configured" not in st.session_state:
+    st.session_state.model_configured = False
 
-# Configure Gemini API
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if not GEMINI_API_KEY:
-    st.error("❌ GEMINI_API_KEY is missing! Please set it in .env")
-else:
-    genai.configure(api_key=GEMINI_API_KEY)
+def _configure_model():
+    key = st.session_state.api_key.strip()
+    if not key:
+        st.session_state.model_configured = False
+        return False
+    try:
+        genai.configure(api_key=key)
+        st.session_state.model_configured = True
+        return True
+    except Exception as e:
+        st.session_state.model_configured = False
+        st.sidebar.error(f"API config failed: {e}")
+        return False
 
 # Extract text from PDF
 def extract_text_from_pdf(pdf_file):
@@ -152,11 +164,107 @@ def render_skill_list(skill_objs):
 # --- Streamlit UI ---
 st.set_page_config(page_title="AI Resume Analyzer", page_icon="🤖", layout="centered")
 
-st.title("🤖 AI Resume Analyzer")
-st.write("Upload your resume and job description. Choose detail level for the analysis.")
+# Global custom styles (including sidebar polish)
+st.markdown(
+    """
+<style>
+/* Sidebar container */
+section[data-testid="stSidebar"] > div {
+    background: linear-gradient(165deg,#121820 0%, #1f2b3a 55%, #18232f 100%);
+    color: #e0e6ed !important;
+    padding-top: 0.75rem;
+}
+/* Scrollbar subtle */
+section[data-testid="stSidebar"] ::-webkit-scrollbar { width: 8px; }
+section[data-testid="stSidebar"] ::-webkit-scrollbar-track { background: #1a2530; }
+section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb { background: #2e4258; border-radius: 4px; }
+/* Titles */
+.sidebar-title { font-size: 1.2rem; font-weight: 600; margin-bottom: .5rem; display:flex; align-items:center; gap:.4rem; }
+.badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:0.70rem; font-weight:600; letter-spacing:.5px; background:#2d3d4d; color:#b9c8d6; }
+.badge.ok { background:#1b5e20; color:#d4f7d6; }
+.badge.err { background:#641e1e; color:#f8d0d0; }
+.divider { border:0; height:1px; background: linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.35),rgba(255,255,255,.05)); margin:0.9rem 0 0.8rem; }
+.step-list li { margin:0 0 .35rem 0; }
+.muted { opacity:.75; font-size:.75rem; }
+.footer-note { font-size: .65rem; margin-top:1.25rem; opacity:.50; }
+input[type=password], input[type=text] { border-radius:8px !important; }
+/* Select box tweak */
+div[data-baseweb="select"] > div { border-radius:8px !important; }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
-# Detail level control
-detail_level = st.selectbox("Detail Level", ["Concise", "Standard", "Detailed"], index=1, help="Controls length of notes and summary depth")
+############################################
+# Sidebar: Intro & API Key
+############################################
+with st.sidebar:
+    # Header
+    st.markdown('<div class="sidebar-title">🧠 AI Resume Analyzer <span class="badge">v1</span></div>', unsafe_allow_html=True)
+    status_badge = '<span class="badge ok">API OK</span>' if st.session_state.model_configured else '<span class="badge err">NO KEY</span>'
+    st.markdown(f"Current Status: {status_badge}", unsafe_allow_html=True)
+    st.markdown('<hr class="divider" />', unsafe_allow_html=True)
+
+    # Steps
+    st.markdown("**Workflow**")
+    st.markdown(
+        """
+<ol class='step-list'>
+  <li>Enter your Gemini API key.</li>
+  <li>Select desired detail level.</li>
+  <li>Paste the job description.</li>
+  <li>Upload resume & Analyze.</li>
+</ol>
+""",
+        unsafe_allow_html=True,
+    )
+    st.markdown('<hr class="divider" />', unsafe_allow_html=True)
+
+    # API Key control
+    api_in = st.text_input(
+        "🔑 Gemini API Key",
+        value=st.session_state.api_key,
+        type="password",
+        help="Not stored server-side. Loaded from .env if left blank.",
+        placeholder="Paste your key...",
+    )
+    if api_in != st.session_state.api_key:
+        st.session_state.api_key = api_in
+    col_a, col_b = st.columns([1,1])
+    with col_a:
+        if st.button("Apply Key", use_container_width=True):
+            if _configure_model():
+                st.success("Configured")
+            else:
+                st.error("Invalid / Missing")
+    with col_b:
+        if st.button("Clear Key", use_container_width=True):
+            st.session_state.api_key = ""
+            st.session_state.model_configured = False
+    if not st.session_state.model_configured and st.session_state.api_key:
+        _configure_model()
+
+    # Detail level
+    detail_level = st.selectbox(
+        "Detail Level",
+        ["Concise", "Standard", "Detailed"],
+        index=["Concise","Standard","Detailed"].index("Standard"),
+        help="Controls verbosity of notes & summary",
+    )
+
+    st.markdown('<hr class="divider" />', unsafe_allow_html=True)
+    st.markdown(
+        """
+**Tips**
+* Detailed mode gives richer context.
+* Retry if JSON parsing fails.
+* Use Markdown export for sharing.
+"""
+    )
+    st.markdown('<div class="footer-note">© 2025 Resume Analyzer • Educational use only</div>', unsafe_allow_html=True)
+
+st.title("🤖 AI Resume Analyzer")
+st.write("Upload your resume and job description below.")
 
 # Job description input
 jd_text = st.text_area("📄 Paste Job Description here:", height=150)
@@ -166,15 +274,18 @@ uploaded_file = st.file_uploader("📂 Upload Resume (PDF)", type=["pdf", "txt"]
 
 if uploaded_file and jd_text:
     if st.button("🚀 Analyze Resume"):
-        with st.spinner("Analyzing resume with AI... ⏳"):
-            if uploaded_file.name.endswith(".pdf"):
-                resume_text = extract_text_from_pdf(uploaded_file)
-            else:
-                resume_text = uploaded_file.read().decode("utf-8")
-            raw = analyze_resume(resume_text, jd_text, detail_level)
-            st.session_state["analysis_raw"] = raw
-            st.session_state["analysis_parsed"] = parse_response(raw)
-        st.success("✅ Analysis Complete!")
+        if not st.session_state.model_configured:
+            st.error("Set a valid Gemini API key in the sidebar first.")
+        else:
+            with st.spinner("Analyzing resume with AI... ⏳"):
+                if uploaded_file.name.endswith(".pdf"):
+                    resume_text = extract_text_from_pdf(uploaded_file)
+                else:
+                    resume_text = uploaded_file.read().decode("utf-8")
+                raw = analyze_resume(resume_text, jd_text, detail_level)
+                st.session_state["analysis_raw"] = raw
+                st.session_state["analysis_parsed"] = parse_response(raw)
+            st.success("✅ Analysis Complete!")
 
 # Render if we have prior analysis
 if "analysis_parsed" in st.session_state:
@@ -198,39 +309,25 @@ if "analysis_parsed" in st.session_state:
         unsafe_allow_html=True,
     )
 
-    # --- Extra views & exports ---
-    with st.expander("Raw JSON & Export"):
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            show_json = st.checkbox("Show Raw JSON", value=False)
-        with col2:
-            # Download JSON
-            st.download_button(
-                "Download JSON",
-                data=json.dumps(parsed, indent=2),
-                file_name="resume_analysis.json",
-                mime="application/json",
-            )
-        with col3:
-            # Markdown export
-            md = [
-                "# AI Resume Analysis",
-                f"**Match Percentage:** {parsed['match_percentage']}%  ",
-                f"_Justification:_ {parsed['justification']}",
-                "\n## Matched Skills",
-            ]
-            for s in parsed['matched_skills']:
-                md.append(f"- **{s['skill']}**: {s['note']}")
-            md.append("\n## Missing Skills")
-            for s in parsed['missing_skills']:
-                md.append(f"- **{s['skill']}**: {s['note']}")
-            md.append("\n## Summary\n" + parsed['summary'])
-            md_text = "\n".join(md)
-            st.download_button(
-                "Download Markdown",
-                data=md_text,
-                file_name="resume_analysis.md",
-                mime="text/markdown",
-            )
-        if show_json:
-            st.code(json.dumps(parsed, indent=2), language="json")
+    # --- Export (Markdown only) ---
+    with st.expander("Export Report"):
+        md = [
+            "# AI Resume Analysis",
+            f"**Match Percentage:** {parsed['match_percentage']}%  ",
+            f"_Justification:_ {parsed['justification']}",
+            "\n## Matched Skills",
+        ]
+        for s in parsed['matched_skills']:
+            md.append(f"- **{s['skill']}**: {s['note']}")
+        md.append("\n## Missing Skills")
+        for s in parsed['missing_skills']:
+            md.append(f"- **{s['skill']}**: {s['note']}")
+        md.append("\n## Summary\n" + parsed['summary'])
+        md_text = "\n".join(md)
+        st.download_button(
+            "Download Markdown",
+            data=md_text,
+            file_name="resume_analysis.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
