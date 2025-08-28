@@ -1,53 +1,128 @@
 
-# AI Resume Analyzer (Demo-Ready)
+docker build -t ai-resume-analyzer:demo .
+docker run -p 5000:5000 ai-resume-analyzer:demo
+## AI Resume Analyzer 🚀
 
-A minimal demo of a resume-to-JD skill matcher using Flask. It supports PDF (via PyMuPDF) **and** TXT uploads to simplify presentations. Includes Dockerfile and a Jenkins pipeline (Jenkinsfile) to showcase CI/CD.
+Interactive Streamlit app that compares a candidate's resume with a job description using Google Gemini. It extracts skills, highlights matches & gaps, computes a match percentage, and produces a summarized assessment. Includes Docker & Jenkins pipeline for automated CI/CD.
 
-## Quick Start (Local)
+### Features
+* PDF & TXT resume upload (PDF parsed via `pdfplumber`).
+* AI-powered structured analysis (Gemini → enforced JSON schema).
+* Sections: Matched Skills, Missing Skills, Match %, Summary.
+* Detail level selector (Concise / Standard / Detailed).
+* Download results as JSON or Markdown.
+* Robust parser with graceful fallback if model deviates from JSON.
+* Tests for response parsing.
+* Dockerfile + Jenkinsfile for automated build/test/push.
 
-```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-pip install -r requirements.txt
-python app.py
+---
+### 1. Prerequisites
+* Python 3.10+
+* Google Gemini API key (set `GEMINI_API_KEY` in a `.env` file)
+* (Optional) Docker & Jenkins for CI/CD
+
+`.env` example:
+```
+GEMINI_API_KEY=your_gemini_key_here
 ```
 
-Open http://localhost:5000 and upload a resume (.pdf or .txt) + paste a JD to see the match score.
+---
+### 2. Local Run (Streamlit)
+```powershell
+python -m venv .venv
+. .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+streamlit run app.py
+```
+Open: http://localhost:8501
 
-> If PDF parsing fails on your machine, convert your resume to .txt for the demo.
-
-## Run Tests
-
-```bash
-pip install pytest
+---
+### 3. Run Tests
+```powershell
 pytest -q
 ```
 
-## Docker
-
-```bash
-docker build -t ai-resume-analyzer:demo .
-docker run -p 5000:5000 ai-resume-analyzer:demo
-# Open http://localhost:5000
+---
+### 4. Docker Usage
+Build & run (exposes Streamlit on 8501 inside container; we map to 8501):
+```powershell
+docker build -t ai-resume-analyzer:latest .
+docker run -p 8501:8501 --env GEMINI_API_KEY=$Env:GEMINI_API_KEY ai-resume-analyzer:latest
 ```
+If the image still exposes port 5000 (legacy), change the `EXPOSE` and entrypoint accordingly or map 5000.
 
-## Jenkins CI/CD
+---
+### 5. Jenkins Pipeline (CI/CD)
+Pipeline stages (see `Jenkinsfile`):
+1. Checkout
+2. Create venv & install deps + pytest
+3. Run tests
+4. Docker build
+5. Docker login & push (needs creds id: `dockerhub-creds-id`)
+6. Deploy placeholder (echo pull/run command)
 
-1. Run Jenkins (Docker):
-   ```bash
-   docker run -d -p 8080:8080 -p 50000:50000 --name jenkins jenkins/jenkins:lts
-   ```
-2. Install plugins: Pipeline, Docker Pipeline.
-3. Add credentials:
-   - ID: `dockerhub-creds-id` (Docker Hub Username/Password)
-4. Create a Pipeline job using this repo (Jenkinsfile included).
-5. Pipeline: Checkout → Install Deps → Tests → Docker Build → Push → Deploy (placeholder).
+Minimal Jenkins setup:
+```bash
+docker run -d -p 8080:8080 -p 50000:50000 --name jenkins jenkins/jenkins:lts
+```
+Add Docker inside Jenkins host (or use an agent with Docker).
 
-## How it works
+Credentials: add Docker Hub username/password as `dockerhub-creds-id`.
 
-- Extracts text from PDF/TXT.
-- Tokenizes & normalizes words.
-- Uses `data/skills_master.txt` to detect skills.
-- Computes overlap-based match percentage between JD and resume.
+---
+### 6. Code Overview
+| Component | Purpose |
+|-----------|---------|
+| `app.py` | Streamlit app + Gemini prompt + parsing/export |
+| `data/skills_master.txt` | (Legacy) skills list; current logic relies on AI extraction |
+| `Dockerfile` | Container build instructions |
+| `Jenkinsfile` | CI/CD stages |
+| `test_app.py` | Parser unit tests |
+
+---
+### 7. Adjusting AI Output
+Use the Detail Level dropdown. It modifies:
+* Note length per skill
+* Summary depth
+
+To further tune: edit `analyze_resume()` prompt constraints.
+
+---
+### 8. Environment Variables
+| Var | Description |
+|-----|-------------|
+| `GEMINI_API_KEY` | Required for Gemini model calls |
+
+Set inside `.env` (loaded via `python-dotenv`) or pass via Docker `--env`.
+
+---
+### 9. Future Improvements (Ideas)
+* Add authentication (per-user history).
+* Persist analyses (SQLite / PostgreSQL).
+* Add model selection & temperature control.
+* Export as PDF.
+* Slack / Email integration for sharing results.
+
+---
+### 10. Troubleshooting
+| Issue | Fix |
+|-------|-----|
+| API key missing | Create `.env` with `GEMINI_API_KEY` |
+| Empty skills lists | Model failed JSON → fallback triggered; retry Detailed mode |
+| Docker build slow | Enable build cache; pin dependencies |
+| Jenkins Docker perms | Add user to `docker` group or use Docker-in-Docker agent |
+
+---
+### 11. License
+MIT (add a LICENSE file if distributing).
+
+---
+### 12. Disclaimer
+AI output may contain hallucinations; always validate critical decisions manually.
+
+---
+### 13. Screenshot (Optional)
+Add a screenshot here once UI is running.
+
+---
+Happy analyzing! 🎯
