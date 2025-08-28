@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AI Resume Analyzer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body { 
+      background: #f4f7fa; 
+      display: flex; 
+      justify-content: center; 
+      align-items: center; 
+      height: 100vh; 
+    }
+    .card {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .btn-custom {
+      background: #007bff;
+      color: white;
+      font-weight: bold;
+    }
+    .btn-custom:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <div class="card shadow">
+    <h2 class="text-center mb-4">🤖 AI Resume Analyzer</h2>
+    <form method="POST" enctype="multipart/form-data">
+      <!-- Job Description -->
+      <div class="mb-3">
+        <label for="job_description" class="form-label">Job Description</label>
+        <textarea class="form-control" id="job_description" name="job_description" rows="4" placeholder="Paste the job description here..." required></textarea>
+      </div>
+
+      <!-- Resume Upload -->
+      <div class="mb-3">
+        <label for="resume" class="form-label">Upload Resume</label>
+        <input type="file" class="form-control" id="resume" name="resume" accept=".pdf,.txt" required>
+        <div class="form-text">Upload your resume (PDF or TXT format)</div>
+      </div>
+
+      <!-- Submit -->
+      <div class="d-grid">
+        <button type="submit" class="btn btn-custom">Analyze Resume</button>
+      </div>
+    </form>
+  </div>
+</body>
+</html>

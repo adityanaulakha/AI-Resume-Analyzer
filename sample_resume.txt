@@ -1,0 +1,16 @@
+Aditya Naulakha
+Email: aditya@example.com
+
+Summary
+Computer Science student with hands-on projects in Python, Flask, Docker, and AWS.
+Built CI/CD pipelines using Jenkins and GitHub. Familiar with Kubernetes and REST APIs.
+
+Skills
+Python, Flask, Docker, AWS, Jenkins, Git, Linux, SQL, React
+
+Experience
+- Built a Flask web app and containerized it with Docker.
+- Deployed on AWS EC2 and configured a basic CI/CD pipeline in Jenkins.
+
+Education
+B.Tech (Computer Science)
