@@ -12,16 +12,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                // Retry build if it fails (handles network/pip issues)
                 retry(2) {
-                    sh 'docker buildx build --platform linux/amd64 -t ai-resume-analyzer .'
+                    sh 'docker build -t ai-resume-analyzer .'
                 }
             }
         }
 
         stage('Stop Old Container') {
             steps {
-                // Stop and remove old container if it exists
                 sh '''
                 if [ "$(docker ps -aq -f name=resume-analyzer)" ]; then
                     docker stop resume-analyzer || true
