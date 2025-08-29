@@ -13,25 +13,23 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 retry(2) {
-                    sh 'docker build -t ai-resume-analyzer .'
+                    bat 'docker build -t ai-resume-analyzer .'
                 }
             }
         }
 
         stage('Stop Old Container') {
             steps {
-                sh '''
-                if [ "$(docker ps -aq -f name=resume-analyzer)" ]; then
-                    docker stop resume-analyzer || true
-                    docker rm resume-analyzer || true
-                fi
+                bat '''
+                docker stop resume-analyzer || echo "No container to stop"
+                docker rm resume-analyzer || echo "No container to remove"
                 '''
             }
         }
 
         stage('Run Container') {
             steps {
-                sh 'docker run -d -p 8501:8501 --name resume-analyzer ai-resume-analyzer'
+                bat 'docker run -d -p 8501:8501 --name resume-analyzer ai-resume-analyzer'
             }
         }
     }
