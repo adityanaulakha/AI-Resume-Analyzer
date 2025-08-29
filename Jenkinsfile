@@ -1,22 +1,31 @@
-
 pipeline {
-  agent any
-  environment {
-    DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds-id')
-    DOCKER_IMAGE = "yourdockerhubusername/ai-resume-analyzer:${env.BUILD_NUMBER}"
-  }
-  stages {
-    stage('Checkout') { steps { checkout scm } }
-    stage('Install Deps') { steps { sh 'python3 -m venv venv && . venv/bin/activate && pip install -r requirements.txt pytest' } }
-    stage('Unit Tests') { steps { sh '. venv/bin/activate && pytest -q' } }
-    stage('Docker Build') { steps { sh "docker build -t ${DOCKER_IMAGE} ." } }
-    stage('Docker Login & Push') {
-      steps {
-        sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
-        sh "docker push ${DOCKER_IMAGE}"
-      }
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/your-repo/ai-resume-analyzer.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("ai-resume-analyzer:latest")
+                }
+            }
+        }
+
+        stage('Run Container') {
+            steps {
+                script {
+                    // Stop old container if running
+                    sh 'docker rm -f ai-resume-analyzer || true'
+
+                    // Run new container
+                    sh 'docker run -d -p 8501:8501 --name ai-resume-analyzer ai-resume-analyzer:latest'
+                }
+            }
+        }
     }
-    stage('Deploy (Placeholder)') { steps { echo "Run: docker pull ${DOCKER_IMAGE} && docker run -d -p 80:5000 ${DOCKER_IMAGE}" } }
-  }
-  post { always { cleanWs() } }
 }
