@@ -1,7 +1,4 @@
-
-docker build -t ai-resume-analyzer:demo .
-docker run -p 5000:5000 ai-resume-analyzer:demo
-## AI Resume Analyzer 🚀
+# AI Resume Analyzer 🚀
 
 Interactive Streamlit app that compares a candidate's resume with a job description using Google Gemini. It extracts skills, highlights matches & gaps, computes a match percentage, and produces a summarized assessment. Includes Docker & Jenkins pipeline for automated CI/CD.
 
