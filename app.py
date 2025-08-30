@@ -7,7 +7,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 from io import StringIO
 
-# Load environment variables & prime session state
+# Env setup
 load_dotenv()
 _env_key = os.getenv("GEMINI_API_KEY", "")
 if "api_key" not in st.session_state:
@@ -29,7 +29,7 @@ def _configure_model():
         st.sidebar.error(f"API config failed: {e}")
         return False
 
-# Extract text from PDF
+# PDF text
 def extract_text_from_pdf(pdf_file):
     text = ""
     with pdfplumber.open(pdf_file) as pdf:
@@ -39,9 +39,9 @@ def extract_text_from_pdf(pdf_file):
                 text += page_text + "\n"
     return text
 
-# AI Resume Analysis
+# Analyze Function
 def analyze_resume(resume_text, jd_text, detail_level: str = "Standard"):
-    """Ask the model for strict JSON so we can parse reliably, with adjustable detail level."""
+    """Ask the model for strict JSON so we can parse reliably with adjustable detail level."""
     # Detail configuration
     if detail_level == "Concise":
         note_len = "max 10 words"
@@ -69,9 +69,9 @@ def analyze_resume(resume_text, jd_text, detail_level: str = "Standard"):
     response = model.generate_content(prompt)
     return response.text.strip()
 
-# Parse AI Response
+# Parse JSON
 def parse_response(raw_text):
-    """Parse model output which should be JSON; fallback to regex if needed."""
+    """Parse model output which should be JSON."""
     data = {
         "matched_skills": [],
         "missing_skills": [],
@@ -80,7 +80,7 @@ def parse_response(raw_text):
         "summary": ""
     }
 
-    # Attempt direct JSON load (strip possible markdown fences)
+    # Attempt direct load
     cleaned = raw_text.strip().strip('`')
     fenced = re.sub(r'^json\n', '', cleaned, flags=re.IGNORECASE)
     try:
@@ -89,12 +89,12 @@ def parse_response(raw_text):
         for k in data.keys():
             if k in parsed:
                 data[k] = parsed[k]
-        # Accept alternate key names
+        # Accept alternate key name
         if not data["match_percentage"]:
             mp_alt = parsed.get("matchPercent") or parsed.get("match_percentage") or parsed.get("match")
             data["match_percentage"] = mp_alt
     except Exception:
-        # Fallback: extract sections heuristically
+        # Fallback
         def grab(sec):
             m = re.search(rf'{sec}:(.*?)(?:\n\n|$)', raw_text, flags=re.IGNORECASE|re.DOTALL)
             return m.group(1).strip() if m else ''
@@ -161,10 +161,10 @@ def render_skill_list(skill_objs):
         lis.append(f"<li>{text}</li>")
     return "<ul>" + "".join(lis) + "</ul>"
 
-# --- Streamlit UI ---
+# UI
 st.set_page_config(page_title="AI Resume Analyzer", page_icon="🤖", layout="centered")
 
-# Global custom styles (including sidebar polish)
+# Global CSS
 st.markdown(
     """
 <style>
@@ -195,9 +195,7 @@ div[data-baseweb="select"] > div { border-radius:8px !important; }
     unsafe_allow_html=True,
 )
 
-############################################
-# Sidebar: Intro & API Key
-############################################
+# Sidebar
 with st.sidebar:
     # Header
     st.markdown('<div class="sidebar-title">🧠 AI Resume Analyzer <span class="badge">v1</span></div>', unsafe_allow_html=True)
@@ -220,7 +218,7 @@ with st.sidebar:
     )
     st.markdown('<hr class="divider" />', unsafe_allow_html=True)
 
-    # API Key control
+    # API Key
     api_in = st.text_input(
         "🔑 Gemini API Key",
         value=st.session_state.api_key,
@@ -244,7 +242,7 @@ with st.sidebar:
     if not st.session_state.model_configured and st.session_state.api_key:
         _configure_model()
 
-    # Detail level
+    # Detail Dropdown Menu
     detail_level = st.selectbox(
         "Detail Level",
         ["Concise", "Standard", "Detailed"],
@@ -266,7 +264,7 @@ with st.sidebar:
 st.title("🤖 AI Resume Analyzer")
 st.write("Upload your resume and job description below.")
 
-# Job description input
+# Job description
 jd_text = st.text_area("📄 Paste Job Description here:", height=150)
 
 # Resume upload
@@ -287,7 +285,7 @@ if uploaded_file and jd_text:
                 st.session_state["analysis_parsed"] = parse_response(raw)
             st.success("✅ Analysis Complete!")
 
-# Render if we have prior analysis
+# Results
 if "analysis_parsed" in st.session_state:
     parsed = st.session_state["analysis_parsed"]
     st.markdown(
@@ -309,7 +307,7 @@ if "analysis_parsed" in st.session_state:
         unsafe_allow_html=True,
     )
 
-    # --- Export (Markdown only) ---
+    #Export
     with st.expander("Export Report"):
         md = [
             "# AI Resume Analysis",
