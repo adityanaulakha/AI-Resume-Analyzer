@@ -110,16 +110,9 @@ Set inside `.env` (loaded via `python-dotenv`) or pass via Docker `--env`.
 | Jenkins Docker perms | Add user to `docker` group or use Docker-in-Docker agent |
 
 ---
-### 11. License
-MIT (add a LICENSE file if distributing).
-
----
-### 12. Disclaimer
+### 11. Disclaimer
 AI output may contain hallucinations; always validate critical decisions manually.
 
 ---
-### 13. Screenshot (Optional)
-Add a screenshot here once UI is running.
 
----
 Happy analyzing! 🎯
